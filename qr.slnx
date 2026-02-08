@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="qr0/qr0.csproj" />
+  <Project Path="qr1/qr1.csproj" />
+  <Project Path="QRCoder/QRCoder.csproj" />
+</Solution>
