@@ -131,11 +131,6 @@ public partial class QRCodeGenerator
             // Temporary QRCodeData object to test different mask patterns without altering the original.
             var qrTemp = new QRCodeData(version, false);
             BitArray? versionString = null;
-            if (version >= 7)
-            {
-                versionString = new BitArray(18);
-                GetVersionString(versionString, version);
-            }
             var formatStr = new BitArray(15);
             for (var maskPattern = 0; maskPattern < 8; maskPattern++)
             {

@@ -8,79 +8,14 @@ public partial class QRCodeGenerator : IDisposable
 {
 
 #pragma warning disable CA1822 // Mark members as static
-    public static QRCodeData GenerateQrCode(string plainText, ECCLevel eccLevel, bool forceUtf8 = false, bool utf8BOM = false, EciMode eciMode = EciMode.Default, int requestedVersion = -1)
+    public static QRCodeData GenerateQrCode(string plainText)
     {
-        eccLevel = ValidateECCLevel(eccLevel);
-        // Create data segment from plain text
-        var segment = CreateDataSegment(plainText, forceUtf8, utf8BOM, eciMode);
-        // Determine the appropriate version based on segment bit length
-        int version = DetermineVersion(segment, eccLevel, requestedVersion);
-        // Build the complete bit array for the determined version
-        var completeBitArray = segment.ToBitArray(version);
-        return GenerateQrCode(completeBitArray, eccLevel, version);
-    }
+        ECCLevel eccLevel = ECCLevel.H;
+        int version = 1;
 
-    private static DataSegment CreateDataSegment(string plainText, bool forceUtf8, bool utf8BOM, EciMode eciMode)
-    {
-        // Fast path: Use optimized Latin1 segment if conditions allow
-        if (!forceUtf8 && !utf8BOM && eciMode == EciMode.Default && OptimizedLatin1DataSegment.CanEncode(plainText))
-            return new OptimizedLatin1DataSegment(plainText);
+        var segment = new OptimizedLatin1DataSegment(plainText);
+        var bitArray = segment.ToBitArray(version);
 
-        var encoding = GetEncodingFromPlaintext(plainText, forceUtf8);
-
-        // Use specialized segment classes based on encoding mode
-        return encoding switch
-        {
-            EncodingMode.Numeric => new NumericDataSegment(plainText),
-            EncodingMode.Alphanumeric => new AlphanumericDataSegment(plainText),
-            EncodingMode.Byte => new ByteDataSegment(plainText, forceUtf8, utf8BOM, eciMode),
-            _ => throw new InvalidOperationException($"Unsupported encoding mode: {encoding}")
-        };
-    }
-
-    private static int DetermineVersion(DataSegment segment, ECCLevel eccLevel, int version)
-    {
-        if (!CapacityTables.TryCalculateMinimumVersion(segment, eccLevel, out var minVersion))
-        {
-            return Throw(eccLevel, segment.EncodingMode, version == -1 ? 40 : version);
-        }
-        else if (version == -1)
-        {
-            return minVersion;
-        }
-        else
-        {
-            //Version was passed as fixed version via parameter. Thus let's check if chosen version is valid.
-            if (minVersion > version)
-            {
-                // Use a throw-helper to avoid allocating a closure
-                return Throw(eccLevel, segment.EncodingMode, version);
-            }
-            return version;
-        }
-
-        static int Throw(ECCLevel eccLevel, EncodingMode encoding, int version)
-        {
-            var maxSizeByte = CapacityTables.GetVersionInfo(version).Details.First(x => x.ErrorCorrectionLevel == eccLevel).CapacityDict[encoding];
-            throw new Exceptions.DataTooLongException(eccLevel.ToString(), encoding.ToString(), version, maxSizeByte);
-        }
-    }
-
-    private static ECCLevel ValidateECCLevel(ECCLevel eccLevel)
-    {
-        return eccLevel switch
-        {
-            ECCLevel.L or ECCLevel.M or ECCLevel.Q or ECCLevel.H => eccLevel,
-            ECCLevel.Default => ECCLevel.M,
-            _ => throw new ArgumentOutOfRangeException(nameof(eccLevel), eccLevel, "Invalid error correction level."),
-        };
-    }
-
-    private static readonly BitArray _repeatingPattern = new BitArray(
-        new[] { true, true, true, false, true, true, false, false, false, false, false, true, false, false, false, true });
-
-    private static QRCodeData GenerateQrCode(BitArray bitArray, ECCLevel eccLevel, int version)
-    {
         var eccInfo = CapacityTables.GetEccInfo(version, eccLevel);
 
         // Fill up data code word
@@ -114,22 +49,12 @@ public partial class QRCodeGenerator : IDisposable
                 // extend bit array to required length
                 bitArray.Length = dataLength;
                 // compute padding length
-                int padLength = version switch
-                {
-                    > 0 => 4,
-                    -1 => 3,
-                    -2 => 5,
-                    -3 => 7,
-                    _ => 9
-                };
+                int padLength = 4;
                 // pad with zeros (or less if not enough room)
                 index += padLength;
                 // pad to nearest 8 bit boundary
                 if ((uint)index % 8 != 0)
                     index += 8 - (int)((uint)index % 8);
-                // for m1 and m3 sizes don't fill last 4 bits with repeating pattern
-                if (version == -1 || version == -3)
-                    dataLength -= 4;
                 // pad with repeating pattern
                 var repeatingPatternIndex = 0;
                 while (index < dataLength)
@@ -174,11 +99,6 @@ public partial class QRCodeGenerator : IDisposable
         {
             var length = 0;
             var codewords = Math.Max(eccInfo.CodewordsInGroup1, eccInfo.CodewordsInGroup2);
-            if (version == -1 || version == -3)
-            {
-                codewords--;
-                length += 4;
-            }
             for (var i = 0; i < codewords; i++)
             {
                 foreach (var codeBlock in codeWordWithECC)
@@ -200,9 +120,6 @@ public partial class QRCodeGenerator : IDisposable
         {
             var data = new BitArray(interleavedLength);
             int pos = 0;
-            int codewords = Math.Max(eccInfo.CodewordsInGroup1, eccInfo.CodewordsInGroup2);
-            if (version == -1 || version == -3)
-                codewords--;
             for (var i = 0; i < Math.Max(eccInfo.CodewordsInGroup1, eccInfo.CodewordsInGroup2); i++)
             {
                 foreach (var codeBlock in codeWordWithECC)
@@ -210,10 +127,6 @@ public partial class QRCodeGenerator : IDisposable
                     if ((uint)codeBlock.CodeWordsLength / 8 > i)
                         pos = bitArray.CopyTo(data, (int)((uint)i * 8) + codeBlock.CodeWordsOffset, pos, 8);
                 }
-            }
-            if (version == -1 || version == -3)
-            {
-                pos = bitArray.CopyTo(data, (int)((uint)codewords * 8) + codeWordWithECC[0].CodeWordsOffset, pos, 4);
             }
             for (var i = 0; i < eccInfo.ECCPerBlock; i++)
             {
@@ -245,16 +158,12 @@ public partial class QRCodeGenerator : IDisposable
                 ModulePlacer.PlaceFormat(qr, tempBitArray, true);
             }
 
-            if (version >= 7)
-            {
-                GetVersionString(tempBitArray, version);
-                ModulePlacer.PlaceVersion(qr, tempBitArray, true);
-            }
-
             return qr;
         }
     }
 
+    private static readonly BitArray _repeatingPattern = new BitArray(
+        new[] { true, true, true, false, true, true, false, false, false, false, false, true, false, false, false, true });
     private static readonly BitArray _getFormatGenerator = new BitArray(new bool[] { true, false, true, false, false, true, true, false, true, true, true });
     private static readonly BitArray _getFormatMask = new BitArray(new bool[] { true, false, true, false, true, false, false, false, false, false, true, false, false, true, false });
     private static readonly BitArray _getFormatMicroMask = new BitArray(new bool[] { true, false, false, false, true, false, false, false, true, false, false, false, true, false, true });
@@ -263,10 +172,7 @@ public partial class QRCodeGenerator : IDisposable
     {
         fStrEcc.Length = 15;
         fStrEcc.SetAll(false);
-        if (version < 0)
-            WriteMicroEccLevelAndVersion();
-        else
-            WriteEccLevelAndVersion();
+        WriteEccLevelAndVersion();
 
         // Apply the format generator polynomial to add error correction to the format string.
         int index = 0;
@@ -285,10 +191,7 @@ public partial class QRCodeGenerator : IDisposable
         // Prefix the error correction bits with the ECC level and version number.
         fStrEcc.Length = 10 + 5;
         ShiftAwayFromBit0(fStrEcc, (10 - count) + 5);
-        if (version < 0)
-            WriteMicroEccLevelAndVersion();
-        else
-            WriteEccLevelAndVersion();
+        WriteEccLevelAndVersion();
 
         // XOR the format string with a predefined mask to add robustness against errors.
         fStrEcc.Xor(version < 0 ? _getFormatMicroMask : _getFormatMask);
@@ -313,49 +216,6 @@ public partial class QRCodeGenerator : IDisposable
 
             // Insert the 3-bit mask version directly after the error correction level bits.
             DecToBin(maskVersion, 3, fStrEcc, 2);
-        }
-
-        void WriteMicroEccLevelAndVersion()
-        {
-            switch (version)
-            {
-                case -1: // M1
-                    break;
-                case -2: // M2
-                    fStrEcc[level == ECCLevel.L ? 2 : 1] = true; // 001 for L and 010 for M
-                    break;
-                case -3: // M3
-                    if (level == ECCLevel.L)
-                    {
-                        fStrEcc[1] = true; // 011 for L
-                        fStrEcc[2] = true;
-                    }
-                    else
-                        fStrEcc[0] = true; // 100 for M
-                    break;
-                default: // M4
-                    fStrEcc[0] = true;
-                    if (level == ECCLevel.L) // 101 for L
-                        fStrEcc[2] = true;
-                    else if (level == ECCLevel.M) // 110 for M
-                        fStrEcc[1] = true;
-                    else // 111 for Q
-                    {
-                        fStrEcc[1] = true;
-                        fStrEcc[2] = true;
-                    }
-                    break;
-            }
-
-            // Insert the 2-bit mask version directly after the version / error correction level bits.
-            int microMaskVersion = maskVersion switch
-            {
-                1 => 0,
-                4 => 1,
-                6 => 2,
-                _ => 3
-            };
-            DecToBin(microMaskVersion, 2, fStrEcc, 3);
         }
     }
 
@@ -382,36 +242,7 @@ public partial class QRCodeGenerator : IDisposable
         fStrEcc.LeftShift(num); // Shift away from bit 0
     }
 
-    private static readonly BitArray _getVersionGenerator = new BitArray(new bool[] { true, true, true, true, true, false, false, true, false, false, true, false, true });
-
-    private static void GetVersionString(BitArray vStr, int version)
-    {
-        vStr.Length = 18;
-        vStr.SetAll(false);
-        DecToBin(version, 6, vStr, 0); // Convert the version number to a 6-bit binary representation.
-
-        var count = vStr.Length;
-        var index = 0;
-        TrimLeadingZeros(vStr, ref index, ref count); // Trim leading zeros to normalize the version bit sequence.
-
-        // Perform error correction encoding using a polynomial generator (specified by _getVersionGenerator).
-        while (count > 12) // The target length of the version information error correction information is 12 bits.
-        {
-            for (var i = 0; i < _getVersionGenerator.Length; i++)
-                vStr[index + i] ^= _getVersionGenerator[i]; // XOR the current bits with the generator sequence.
-
-            TrimLeadingZeros(vStr, ref index, ref count); // Trim leading zeros after each XOR operation to maintain the proper sequence.
-        }
-
-        ShiftTowardsBit0(vStr, index); // Align the bit array so the data starts at index 0.
-
-        // Prefix the error correction encoding with 6 bits containing the version number
-        vStr.Length = 12 + 6;
-        ShiftAwayFromBit0(vStr, (12 - count) + 6);
-        DecToBin(version, 6, vStr, 0);
-    }
-
-    private static ArraySegment<byte> CalculateECCWords(BitArray bitArray, int offset, int count, ECCInfo eccInfo, Polynom generatorPolynomBase)
+     private static ArraySegment<byte> CalculateECCWords(BitArray bitArray, int offset, int count, ECCInfo eccInfo, Polynom generatorPolynomBase)
     {
         var eccWords = eccInfo.ECCPerBlock;
         // Calculate the message polynomial from the bit array data.
@@ -478,23 +309,6 @@ public partial class QRCodeGenerator : IDisposable
             // Convert the alpha exponent of the coefficient to its decimal value and create a new polynomial item with the updated coefficient.
             poly[i] = new PolynomItem(GaloisField.GetIntValFromAlphaExp(poly[i].Coefficient), poly[i].Exponent);
         }
-    }
-
-    internal static EncodingMode GetEncodingFromPlaintext(string plainText, bool forceUtf8)
-    {
-        if (forceUtf8)
-            return EncodingMode.Byte;
-        var result = EncodingMode.Numeric; // assume numeric
-        foreach (char c in plainText)
-        {
-            if (IsInRange(c, '0', '9'))
-                continue;   // numeric - char.IsDigit() for Latin1
-            result = EncodingMode.Alphanumeric;     // not numeric, assume alphanumeric
-            if (AlphanumericEncoder.CanEncode(c))
-                continue; // alphanumeric
-            return EncodingMode.Byte;               // not numeric or alphanumeric, assume byte
-        }
-        return result;                              // either numeric or alphanumeric
     }
 
     private static bool IsInRange(char c, char min, char max)

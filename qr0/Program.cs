@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using static QRCoder.QRCodeGenerator;
 
-using var qrCodeData = GenerateQrCode("S:64 D", ECCLevel.H);
+using var qrCodeData = GenerateQrCode("S:64 D");
 for (int i = 0; i < 29; i++)
 {
     for (int j = 0; j < 29; j++)
@@ -38,7 +38,7 @@ for (byte a = 0; a < 45; a++)
                 {
                     var se = sd + ch[e];
 
-                    using var qrCode = GenerateQrCode(se, ECCLevel.H);
+                    using var qrCode = GenerateQrCode(se);
                     var x = OneCount(qrCode.ModuleMatrix);
 
                     if (x < 191)
