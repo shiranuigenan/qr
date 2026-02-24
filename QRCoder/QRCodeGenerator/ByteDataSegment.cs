@@ -1,7 +1,3 @@
-#if HAS_SPAN
-using System.Buffers;
-#endif
-
 using System.Collections;
 using System.Text;
 
@@ -103,12 +99,8 @@ public partial class QRCodeGenerator
         }
     }
 
-    private static readonly Encoding _iso8859_1 =
-#if NET5_0_OR_GREATER
-        Encoding.Latin1;
-#else
-        Encoding.GetEncoding(28591); // ISO-8859-1
-#endif
+    private static readonly Encoding _iso8859_1 = Encoding.Latin1;
+
     private static Encoding? _iso8859_2;
 
     /// <summary>
@@ -218,20 +210,7 @@ public partial class QRCodeGenerator
     {
         var targetEncoding = GetTargetEncoding(plainText, eciMode, utf8BOM, forceUtf8, out var includeUtf8BOM);
 
-#if HAS_SPAN
-        // We can use stackalloc for small arrays to prevent heap allocations
-        const int MAX_STACK_SIZE_IN_BYTES = 512;
-
-        int count = targetEncoding.GetByteCount(plainText);
-        byte[]? bufferFromPool = null;
-        Span<byte> codeBytes = (count <= MAX_STACK_SIZE_IN_BYTES)
-            ? (stackalloc byte[MAX_STACK_SIZE_IN_BYTES])
-            : (bufferFromPool = ArrayPool<byte>.Shared.Rent(count));
-        codeBytes = codeBytes.Slice(0, count);
-        targetEncoding.GetBytes(plainText, codeBytes);
-#else
         byte[] codeBytes = targetEncoding.GetBytes(plainText);
-#endif
 
         // Write the data to the BitArray
         if (includeUtf8BOM)
@@ -244,11 +223,6 @@ public partial class QRCodeGenerator
         }
         CopyToBitArray(codeBytes, bitArray, offset);
         offset += (int)((uint)codeBytes.Length * 8);
-
-#if HAS_SPAN
-        if (bufferFromPool != null)
-            ArrayPool<byte>.Shared.Return(bufferFromPool);
-#endif
 
         return offset;
     }

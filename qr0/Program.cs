@@ -1,6 +1,14 @@
 ﻿using System.Collections;
 using static QRCoder.QRCodeGenerator;
 
+using var qrCodeData = GenerateQrCode("S:64 D", ECCLevel.H);
+for (int i = 0; i < 29; i++)
+{
+    for (int j = 0; j < 29; j++)
+        Console.Write(qrCodeData.ModuleMatrix[i][j] ? "█" : " ");
+    Console.WriteLine();
+}
+
 if (args.Length < 1)
     return;
 

@@ -359,9 +359,7 @@ public partial class QRCodeGenerator : IDisposable
         }
     }
 
-#if !NETFRAMEWORK || NET45_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
     private static void TrimLeadingZeros(BitArray fStrEcc, ref int index, ref int count)
     {
         while (count > 0 && !fStrEcc[index])
@@ -373,26 +371,15 @@ public partial class QRCodeGenerator : IDisposable
 
     private static void ShiftTowardsBit0(BitArray fStrEcc, int num)
     {
-#if HAS_SPAN
-        fStrEcc.RightShift(num); // Shift towards bit 0
-#else
         for (var i = 0; i < fStrEcc.Length - num; i++)
             fStrEcc[i] = fStrEcc[i + num];
         for (var i = fStrEcc.Length - num; i < fStrEcc.Length; i++)
             fStrEcc[i] = false;
-#endif
     }
 
     private static void ShiftAwayFromBit0(BitArray fStrEcc, int num)
     {
-#if HAS_SPAN
         fStrEcc.LeftShift(num); // Shift away from bit 0
-#else
-        for (var i = fStrEcc.Length - 1; i >= num; i--)
-            fStrEcc[i] = fStrEcc[i - num];
-        for (var i = 0; i < num; i++)
-            fStrEcc[i] = false;
-#endif
     }
 
     private static readonly BitArray _getVersionGenerator = new BitArray(new bool[] { true, true, true, true, true, false, false, true, false, false, true, false, true });
@@ -472,13 +459,8 @@ public partial class QRCodeGenerator : IDisposable
         generatorPolynom.Dispose();
 
         // Convert the resulting polynomial into a byte array representing the ECC codewords.
-#if HAS_SPAN
-        var array = ArrayPool<byte>.Shared.Rent(leadTermSource.Count);
-        var ret = new ArraySegment<byte>(array, 0, leadTermSource.Count);
-#else
         var ret = new ArraySegment<byte>(new byte[leadTermSource.Count]);
         var array = ret.Array!;
-#endif
 
         for (var i = 0; i < leadTermSource.Count; i++)
             array[i] = (byte)leadTermSource[i].Coefficient;
@@ -684,11 +666,7 @@ public partial class QRCodeGenerator : IDisposable
     }
 
     private static void CopyToBitArray(
-#if HAS_SPAN
-        ReadOnlySpan<byte> byteArray, // byte[] has an implicit cast to ReadOnlySpan<byte>
-#else
         byte[] byteArray,
-#endif
         BitArray bitArray,
         int offset)
     {
@@ -770,15 +748,11 @@ public partial class QRCodeGenerator : IDisposable
         }
 
         // Identify and merge terms with the same exponent.
-#if NET5_0_OR_GREATER
         var toGlue = GetNotUniqueExponents(resultPolynom, resultPolynom.Count <= 128 ? stackalloc int[128].Slice(0, resultPolynom.Count) : new int[resultPolynom.Count]);
         var gluedPolynoms = toGlue.Length <= 128
             ? stackalloc PolynomItem[128].Slice(0, toGlue.Length)
             : new PolynomItem[toGlue.Length];
-#else
-        var toGlue = GetNotUniqueExponents(resultPolynom);
-        var gluedPolynoms = new PolynomItem[toGlue.Length];
-#endif
+
         var gluedPolynomsIndex = 0;
         foreach (var exponent in toGlue)
         {
@@ -796,11 +770,7 @@ public partial class QRCodeGenerator : IDisposable
 
         // Remove duplicated exponents and add the corrected ones back.
         for (int i = resultPolynom.Count - 1; i >= 0; i--)
-#if NET5_0_OR_GREATER
             if (toGlue.Contains(resultPolynom[i].Exponent))
-#else
-            if (Array.IndexOf(toGlue, resultPolynom[i].Exponent) >= 0)
-#endif
                 resultPolynom.RemoveAt(i);
         foreach (var polynom in gluedPolynoms)
             resultPolynom.Add(polynom);
@@ -810,7 +780,6 @@ public partial class QRCodeGenerator : IDisposable
         return resultPolynom;
 
         // Auxiliary function to identify exponents that appear more than once in the polynomial.
-#if NET5_0_OR_GREATER
         static ReadOnlySpan<int> GetNotUniqueExponents(Polynom list, Span<int> buffer)
         {
             // It works as follows:
@@ -860,41 +829,6 @@ public partial class QRCodeGenerator : IDisposable
 
             return buffer.Slice(0, idx);
         }
-#else
-        static int[] GetNotUniqueExponents(Polynom list)
-        {
-            var dic = new Dictionary<int, bool>(list.Count);
-            foreach (var row in list)
-            {
-#if NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
-                if (!dic.TryAdd(row.Exponent, false))
-#else
-                if (!dic.ContainsKey(row.Exponent))
-                    dic.Add(row.Exponent, false);
-                else
-#endif
-                    dic[row.Exponent] = true;
-            }
-
-            // Collect all exponents that appeared more than once.
-            int count = 0;
-            foreach (var row in dic)
-            {
-                if (row.Value)
-                    count++;
-            }
-
-            var result = new int[count];
-            int i = 0;
-            foreach (var row in dic)
-            {
-                if (row.Value)
-                    result[i++] = row.Key;
-            }
-
-            return result;
-        }
-#endif
     }
 
     public virtual void Dispose()

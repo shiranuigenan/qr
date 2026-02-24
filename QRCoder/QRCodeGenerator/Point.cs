@@ -46,11 +46,7 @@ public partial class QRCodeGenerator
         public override bool Equals(object? obj) => obj is Point point && Equals(point);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-#if NET5_0_OR_GREATER
-            => HashCode.Combine(X, Y);
-#else
-            => X ^ (int)(((uint)Y << 16) | ((uint)Y >> 16));
-#endif
+        public override int GetHashCode() => HashCode.Combine(X, Y);
+
     }
 }

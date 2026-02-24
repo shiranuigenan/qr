@@ -125,11 +125,8 @@ public partial class QRCodeGenerator
         for (int i = offset; i < endIndex - 2; i += 3)
         {
             // Parse the next three characters as a decimal integer.
-#if HAS_SPAN
-            var dec = int.Parse(plainText.AsSpan(i, 3), NumberStyles.None, CultureInfo.InvariantCulture);
-#else
             var dec = int.Parse(plainText.Substring(i, 3), NumberStyles.None, CultureInfo.InvariantCulture);
-#endif
+
             // Convert the decimal to binary and store it in the BitArray.
             bitIndex = DecToBin(dec, 10, bitArray, bitIndex);
             offset += 3;
@@ -139,11 +136,7 @@ public partial class QRCodeGenerator
         // Handle any remaining digits if the total number is not a multiple of three.
         if (length > 0)  // Two remaining digits are encoded in 7 bits; one remaining digit is encoded in 4 bits.
         {
-#if HAS_SPAN
-            var dec = int.Parse(plainText.AsSpan(offset, length), NumberStyles.None, CultureInfo.InvariantCulture);
-#else
             var dec = int.Parse(plainText.Substring(offset, length), NumberStyles.None, CultureInfo.InvariantCulture);
-#endif
             bitIndex = DecToBin(dec, length == 2 ? 7 : 4, bitArray, bitIndex);
         }
 
