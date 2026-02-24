@@ -6,9 +6,6 @@ namespace QRCoder;
 
 public partial class QRCodeGenerator : IDisposable
 {
-    public QRCodeGenerator()
-    {
-    }
 
 #pragma warning disable CA1822 // Mark members as static
     public static QRCodeData GenerateQrCode(string plainText, ECCLevel eccLevel, bool forceUtf8 = false, bool utf8BOM = false, EciMode eciMode = EciMode.Default, int requestedVersion = -1)
