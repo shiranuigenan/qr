@@ -6,8 +6,6 @@ namespace QRCoder;
 
 public partial class QRCodeGenerator : IDisposable
 {
-
-#pragma warning disable CA1822 // Mark members as static
     public static QRCodeData GenerateQrCode(string plainText)
     {
         ECCLevel eccLevel = ECCLevel.H;
@@ -16,7 +14,16 @@ public partial class QRCodeGenerator : IDisposable
         var segment = new OptimizedLatin1DataSegment(plainText);
         var bitArray = segment.ToBitArray(version);
 
-        var eccInfo = CapacityTables.GetEccInfo(version, eccLevel);
+        var eccInfo = new ECCInfo(
+                      version: 1,
+                      errorCorrectionLevel: ECCLevel.H,
+                      totalDataCodewords: 9,
+                      eccPerBlock: 17,
+                      blocksInGroup1: 1,
+                      codewordsInGroup1: 9,
+                      blocksInGroup2: 0,
+                      codewordsInGroup2: 0
+                  );
 
         // Fill up data code word
         PadData();
@@ -161,13 +168,10 @@ public partial class QRCodeGenerator : IDisposable
             return qr;
         }
     }
-
-    private static readonly BitArray _repeatingPattern = new BitArray(
-        new[] { true, true, true, false, true, true, false, false, false, false, false, true, false, false, false, true });
+    private static readonly BitArray _repeatingPattern = new BitArray(new[] { true, true, true, false, true, true, false, false, false, false, false, true, false, false, false, true });
     private static readonly BitArray _getFormatGenerator = new BitArray(new bool[] { true, false, true, false, false, true, true, false, true, true, true });
     private static readonly BitArray _getFormatMask = new BitArray(new bool[] { true, false, true, false, true, false, false, false, false, false, true, false, false, true, false });
     private static readonly BitArray _getFormatMicroMask = new BitArray(new bool[] { true, false, false, false, true, false, false, false, true, false, false, false, true, false, true });
-
     private static void GetFormatString(BitArray fStrEcc, int version, ECCLevel level, int maskVersion)
     {
         fStrEcc.Length = 15;
@@ -218,7 +222,6 @@ public partial class QRCodeGenerator : IDisposable
             DecToBin(maskVersion, 3, fStrEcc, 2);
         }
     }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void TrimLeadingZeros(BitArray fStrEcc, ref int index, ref int count)
     {
@@ -228,7 +231,6 @@ public partial class QRCodeGenerator : IDisposable
             count--;
         }
     }
-
     private static void ShiftTowardsBit0(BitArray fStrEcc, int num)
     {
         for (var i = 0; i < fStrEcc.Length - num; i++)
@@ -236,13 +238,11 @@ public partial class QRCodeGenerator : IDisposable
         for (var i = fStrEcc.Length - num; i < fStrEcc.Length; i++)
             fStrEcc[i] = false;
     }
-
     private static void ShiftAwayFromBit0(BitArray fStrEcc, int num)
     {
         fStrEcc.LeftShift(num); // Shift away from bit 0
     }
-
-     private static ArraySegment<byte> CalculateECCWords(BitArray bitArray, int offset, int count, ECCInfo eccInfo, Polynom generatorPolynomBase)
+    private static ArraySegment<byte> CalculateECCWords(BitArray bitArray, int offset, int count, ECCInfo eccInfo, Polynom generatorPolynomBase)
     {
         var eccWords = eccInfo.ECCPerBlock;
         // Calculate the message polynomial from the bit array data.
@@ -301,7 +301,6 @@ public partial class QRCodeGenerator : IDisposable
 
         return ret;
     }
-
     private static void ConvertToDecNotationInPlace(Polynom poly)
     {
         for (var i = 0; i < poly.Count; i++)
@@ -310,10 +309,8 @@ public partial class QRCodeGenerator : IDisposable
             poly[i] = new PolynomItem(GaloisField.GetIntValFromAlphaExp(poly[i].Coefficient), poly[i].Exponent);
         }
     }
-
     private static bool IsInRange(char c, char min, char max)
         => (uint)(c - min) <= (uint)(max - min);
-
     private static Polynom CalculateMessagePolynom(BitArray bitArray, int offset, int bitCount)
     {
         // Calculate how many full 8-bit codewords are present
@@ -355,7 +352,6 @@ public partial class QRCodeGenerator : IDisposable
 
         return messagePol;
     }
-
     private static Polynom CalculateGeneratorPolynom(int numEccWords)
     {
         var generatorPolynom = new Polynom(2); // Start with the simplest form of the polynomial
@@ -380,7 +376,6 @@ public partial class QRCodeGenerator : IDisposable
 
         return generatorPolynom; // Return the completed generator polynomial
     }
-
     private static int BinToDec(BitArray bitArray, int offset, int count)
     {
         var ret = 0;
@@ -390,7 +385,6 @@ public partial class QRCodeGenerator : IDisposable
         }
         return ret;
     }
-
     private static int DecToBin(int decNum, int bits, BitArray bitList, int index)
     {
         // Convert decNum to binary using a bitwise operation
@@ -402,7 +396,6 @@ public partial class QRCodeGenerator : IDisposable
         }
         return index;
     }
-
     private static int GetCountIndicatorLength(int version, EncodingMode encMode)
     {
         // Different versions and encoding modes require different lengths of bits to represent the character count efficiently
@@ -464,7 +457,6 @@ public partial class QRCodeGenerator : IDisposable
                 return 12;
         }
     }
-
     private static bool IsValidISO(string input)
     {
         // ISO-8859-1 contains the same characters as UTF-16 for the range 0x00-0xFF.
@@ -478,11 +470,7 @@ public partial class QRCodeGenerator : IDisposable
         }
         return true;
     }
-
-    private static void CopyToBitArray(
-        byte[] byteArray,
-        BitArray bitArray,
-        int offset)
+    private static void CopyToBitArray(byte[] byteArray, BitArray bitArray, int offset)
     {
         for (var i = 0; i < byteArray.Length; i++)
         {
@@ -495,7 +483,6 @@ public partial class QRCodeGenerator : IDisposable
             }
         }
     }
-
     private static Polynom XORPolynoms(Polynom messagePolynom, Polynom resPolynom)
     {
         // Determine the larger of the two polynomials to guide the XOR operation.
@@ -525,7 +512,6 @@ public partial class QRCodeGenerator : IDisposable
 
         return resultPolynom;
     }
-
     private static Polynom MultiplyGeneratorPolynomByLeadterm(Polynom genPolynom, PolynomItem leadTerm, int lowerExponentBy)
     {
         var resultPolynom = new Polynom(genPolynom.Count);
@@ -540,7 +526,6 @@ public partial class QRCodeGenerator : IDisposable
         }
         return resultPolynom;
     }
-
     private static Polynom MultiplyAlphaPolynoms(Polynom polynomBase, Polynom polynomMultiplier)
     {
         // Initialize a new polynomial with a size based on the product of the sizes of the two input polynomials.
@@ -644,7 +629,6 @@ public partial class QRCodeGenerator : IDisposable
             return buffer.Slice(0, idx);
         }
     }
-
     public virtual void Dispose()
     {
         // left for back-compat
