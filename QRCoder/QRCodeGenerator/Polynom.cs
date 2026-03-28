@@ -5,35 +5,19 @@ namespace QRCoder;
 
 public partial class QRCodeGenerator
 {
-    /// <summary>
-    /// Represents a polynomial, which is a sum of polynomial terms.
-    /// </summary>
     private struct Polynom : IDisposable
     {
         private PolynomItem[] _polyItems;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Polynom"/> struct with a specified number of initial capacity for polynomial terms.
-        /// </summary>
-        /// <param name="count">The initial capacity of the polynomial items list.</param>
         public Polynom(int count)
         {
             Count = 0;
             _polyItems = RentArray(count);
         }
-
-        /// <summary>
-        /// Adds a polynomial term to the polynomial.
-        /// </summary>
         public void Add(PolynomItem item)
         {
             AssertCapacity(Count + 1);
             _polyItems[Count++] = item;
         }
-
-        /// <summary>
-        /// Removes the polynomial term at the specified index.
-        /// </summary>
         public void RemoveAt(int index)
         {
             if ((uint)index >= (uint)Count)
@@ -44,10 +28,6 @@ public partial class QRCodeGenerator
 
             Count--;
         }
-
-        /// <summary>
-        /// Gets or sets a polynomial term at the specified index.
-        /// </summary>
         public PolynomItem this[int index]
         {
             get
@@ -63,24 +43,10 @@ public partial class QRCodeGenerator
                 _polyItems[index] = value;
             }
         }
-
         [StackTraceHidden]
         private static void ThrowIndexArgumentOutOfRangeException() => throw new ArgumentOutOfRangeException("index");
-
-
-        /// <summary>
-        /// Gets the number of polynomial terms in the polynomial.
-        /// </summary>
         public int Count { get; private set; }
-
-        /// <summary>
-        /// Removes all polynomial terms from the polynomial.
-        /// </summary>
         public void Clear() => Count = 0;
-
-        /// <summary>
-        /// Clones the polynomial, creating a new instance with the same polynomial terms.
-        /// </summary>
         public Polynom Clone()
         {
             var newPolynom = new Polynom(Count);
@@ -88,14 +54,6 @@ public partial class QRCodeGenerator
             newPolynom.Count = Count;
             return newPolynom;
         }
-
-        /// <summary>
-        /// Sorts the collection of <see cref="PolynomItem"/> using a custom comparer function.
-        /// </summary>
-        /// <param name="comparer">
-        /// A function that compares two <see cref="PolynomItem"/> objects and returns an integer indicating their relative order:
-        /// less than zero if the first is less than the second, zero if they are equal, or greater than zero if the first is greater than the second.
-        /// </param>
         public void Sort(Func<PolynomItem, PolynomItem, int> comparer)
         {
             if (comparer == null)
@@ -141,38 +99,11 @@ public partial class QRCodeGenerator
 
             QuickSort(0, Count - 1);
         }
-
-        /// <summary>
-        /// Returns a string that represents the polynomial in standard algebraic notation.
-        /// Example output: "a^2*x^3 + a^5*x^1 + a^3*x^0", which represents the polynomial 2x³ + 5x + 3.
-        /// </summary>
-        public override string ToString()
-        {
-            var sb = new StringBuilder();
-
-            for (int i = 0; i < Count; i++)
-            {
-                var polyItem = _polyItems[i];
-                sb.Append("a^" + polyItem.Coefficient + "*x^" + polyItem.Exponent + " + ");
-            }
-
-            // Remove the trailing " + " if the string builder has added terms
-            if (sb.Length > 0)
-                sb.Length -= 3;
-
-            return sb.ToString();
-        }
-
-        /// <inheritdoc/>
         public void Dispose()
         {
             ReturnArray(_polyItems);
             _polyItems = null!;
         }
-
-        /// <summary>
-        /// Ensures that the polynomial has enough capacity to store the specified number of polynomial terms.
-        /// </summary>
         private void AssertCapacity(int min)
         {
             if (_polyItems.Length < min)
@@ -190,14 +121,8 @@ public partial class QRCodeGenerator
             [StackTraceHidden]
             void ThrowNotSupportedException() => throw new NotSupportedException("The polynomial capacity is fixed and cannot be increased.");
         }
-
-        // Implement a poor-man's array pool for .NET Framework
         [ThreadStatic]
         private static List<PolynomItem[]>? _arrayPool;
-
-        /// <summary>
-        /// Rents memory for the polynomial terms from a shared memory pool.
-        /// </summary>
         private static PolynomItem[] RentArray(int count)
         {
             if (count <= 0)
@@ -222,10 +147,6 @@ public partial class QRCodeGenerator
 
             void ThrowArgumentOutOfRangeException() => throw new ArgumentOutOfRangeException(nameof(count), "The count must be a positive number.");
         }
-
-        /// <summary>
-        /// Returns memory allocated for the polynomial terms back to a shared memory pool.
-        /// </summary>
         private static void ReturnArray(PolynomItem[] array)
         {
             if (array == null)
@@ -237,15 +158,7 @@ public partial class QRCodeGenerator
             // Add the buffer back to the pool
             _arrayPool.Add(array);
         }
-
-        /// <summary>
-        /// Returns an enumerator that iterates through the polynomial terms.
-        /// </summary>
         public PolynumEnumerator GetEnumerator() => new PolynumEnumerator(this);
-
-        /// <summary>
-        /// Value type enumerator for the <see cref="Polynom"/> struct.
-        /// </summary>
         public struct PolynumEnumerator
         {
             private Polynom _polynom;

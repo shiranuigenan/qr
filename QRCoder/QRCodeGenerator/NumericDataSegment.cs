@@ -5,9 +5,6 @@ namespace QRCoder;
 
 public partial class QRCodeGenerator
 {
-    /// <summary>
-    /// Data segment optimized for numeric data encoding.
-    /// </summary>
     private sealed class NumericDataSegment : DataSegment
     {
         /// <summary>
@@ -91,32 +88,6 @@ public partial class QRCodeGenerator
             return index;
         }
     }
-
-    /// <summary>
-    /// Converts numeric plain text into a binary format specifically optimized for QR codes.
-    /// Numeric compression groups up to 3 digits into 10 bits, less for remaining digits if they do not complete a group of three.
-    /// </summary>
-    /// <param name="plainText">The numeric text to be encoded, which should only contain digit characters.</param>
-    /// <returns>A BitArray representing the binary data of the encoded numeric text.</returns>
-    private static BitArray PlainTextToBinaryNumeric(string plainText)
-    {
-        // Calculate the length of the BitArray needed to encode the text.
-        // Groups of three digits are encoded in 10 bits, remaining groups of two or one digits take 7 or 4 bits respectively.
-        var bitArray = new BitArray(plainText.Length / 3 * 10 + (plainText.Length % 3 == 1 ? 4 : plainText.Length % 3 == 2 ? 7 : 0));
-        PlainTextToBinaryNumeric(plainText, 0, plainText.Length, bitArray, 0);
-        return bitArray;
-    }
-
-    /// <summary>
-    /// Converts a portion of numeric plain text into a binary format specifically optimized for QR codes, writing directly to an existing BitArray.
-    /// Numeric compression groups up to 3 digits into 10 bits, less for remaining digits if they do not complete a group of three.
-    /// </summary>
-    /// <param name="plainText">The numeric text to be encoded, which should only contain digit characters.</param>
-    /// <param name="offset">The starting index in the text to encode from.</param>
-    /// <param name="length">The number of characters to encode.</param>
-    /// <param name="bitArray">The target BitArray to write to.</param>
-    /// <param name="bitIndex">The starting index in the BitArray where bits will be written.</param>
-    /// <returns>The next index in the BitArray after the last bit written.</returns>
     private static int PlainTextToBinaryNumeric(string plainText, int offset, int length, BitArray bitArray, int bitIndex)
     {
         var endIndex = offset + length;
