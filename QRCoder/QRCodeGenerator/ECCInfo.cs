@@ -4,11 +4,10 @@ public partial class QRCodeGenerator
 {
     private struct ECCInfo
     {
-        public ECCInfo(int version, ECCLevel errorCorrectionLevel, int totalDataCodewords, int eccPerBlock, int blocksInGroup1,
+        public ECCInfo(int version, int totalDataCodewords, int eccPerBlock, int blocksInGroup1,
             int codewordsInGroup1, int blocksInGroup2, int codewordsInGroup2)
         {
             Version = version;
-            ErrorCorrectionLevel = errorCorrectionLevel;
             TotalDataCodewords = totalDataCodewords;
             TotalDataBits = totalDataCodewords * 8;
             ECCPerBlock = eccPerBlock;
@@ -18,7 +17,6 @@ public partial class QRCodeGenerator
             CodewordsInGroup2 = codewordsInGroup2;
         }
         public int Version { get; }
-        public ECCLevel ErrorCorrectionLevel { get; }
         public int TotalDataCodewords { get; }
         public int TotalDataBits { get; }
         public int ECCPerBlock { get; }

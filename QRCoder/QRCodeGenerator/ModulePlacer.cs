@@ -97,7 +97,7 @@ public partial class QRCodeGenerator
                 }
             }
         }
-        public static int MaskCode(QRCodeData qrCode, int version, BlockedModules blockedModules, ECCLevel eccLevel)
+        public static int MaskCode(QRCodeData qrCode, int version, BlockedModules blockedModules)
         {
             int selectedPattern = -1;        // no pattern selected yet
             var patternScore = int.MaxValue; // lower score is better
@@ -125,7 +125,7 @@ public partial class QRCodeGenerator
                 }
 
                 // Place format information using the current mask pattern.
-                GetFormatString(formatStr, version, eccLevel, maskPattern);
+                GetFormatString(formatStr, version, maskPattern);
                 ModulePlacer.PlaceFormat(qrTemp, formatStr, false);
 
                 // Place version information if applicable.

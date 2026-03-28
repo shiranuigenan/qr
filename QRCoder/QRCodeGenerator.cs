@@ -8,7 +8,6 @@ public partial class QRCodeGenerator : IDisposable
 {
     public static QRCodeData GenerateQrCode(string plainText)
     {
-        ECCLevel eccLevel = ECCLevel.H;
         int version = 1;
 
         var segment = new OptimizedLatin1DataSegment(plainText);
@@ -16,7 +15,6 @@ public partial class QRCodeGenerator : IDisposable
 
         var eccInfo = new ECCInfo(
                       version: 1,
-                      errorCorrectionLevel: ECCLevel.H,
                       totalDataCodewords: 9,
                       eccPerBlock: 17,
                       blocksInGroup1: 1,
@@ -160,8 +158,8 @@ public partial class QRCodeGenerator : IDisposable
                 ModulePlacer.PlaceDarkModule(qr, version, blockedModules);
                 ModulePlacer.ReserveVersionAreas(size, version, blockedModules);
                 ModulePlacer.PlaceDataWords(qr, interleavedData, blockedModules);
-                var maskVersion = ModulePlacer.MaskCode(qr, version, blockedModules, eccLevel);
-                GetFormatString(tempBitArray, version, eccLevel, maskVersion);
+                var maskVersion = ModulePlacer.MaskCode(qr, version, blockedModules);
+                GetFormatString(tempBitArray, version, maskVersion);
                 ModulePlacer.PlaceFormat(qr, tempBitArray, true);
             }
 
@@ -172,7 +170,7 @@ public partial class QRCodeGenerator : IDisposable
     private static readonly BitArray _getFormatGenerator = new BitArray(new bool[] { true, false, true, false, false, true, true, false, true, true, true });
     private static readonly BitArray _getFormatMask = new BitArray(new bool[] { true, false, true, false, true, false, false, false, false, false, true, false, false, true, false });
     private static readonly BitArray _getFormatMicroMask = new BitArray(new bool[] { true, false, false, false, true, false, false, false, true, false, false, false, true, false, true });
-    private static void GetFormatString(BitArray fStrEcc, int version, ECCLevel level, int maskVersion)
+    private static void GetFormatString(BitArray fStrEcc, int version, int maskVersion)
     {
         fStrEcc.Length = 15;
         fStrEcc.SetAll(false);
@@ -202,22 +200,7 @@ public partial class QRCodeGenerator : IDisposable
 
         void WriteEccLevelAndVersion()
         {
-            switch (level)
-            {
-                case ECCLevel.L: // 01
-                    fStrEcc[1] = true;
-                    break;
-                case ECCLevel.H: // 10
-                    fStrEcc[0] = true;
-                    break;
-                case ECCLevel.Q: // 11
-                    fStrEcc[0] = true;
-                    fStrEcc[1] = true;
-                    break;
-                default: // M: 00
-                    break;
-            }
-
+            fStrEcc[0] = true;
             // Insert the 3-bit mask version directly after the error correction level bits.
             DecToBin(maskVersion, 3, fStrEcc, 2);
         }
@@ -398,64 +381,7 @@ public partial class QRCodeGenerator : IDisposable
     }
     private static int GetCountIndicatorLength(int version, EncodingMode encMode)
     {
-        // Different versions and encoding modes require different lengths of bits to represent the character count efficiently
-        if (version == -1)
-        {
-            return 3;
-        }
-        else if (version == -2)
-        {
-            return encMode == EncodingMode.Numeric ? 4 : 3;
-        }
-        else if (version == -3)
-        {
-            if (encMode == EncodingMode.Numeric)
-                return 5;
-            else if (encMode == EncodingMode.Kanji)
-                return 3;
-            else
-                return 4;
-        }
-        else if (version == -4)
-        {
-            if (encMode == EncodingMode.Numeric)
-                return 6;
-            else if (encMode == EncodingMode.Kanji)
-                return 4;
-            else
-                return 5;
-        }
-        else if (version < 10)
-        {
-            if (encMode == EncodingMode.Numeric)
-                return 10;
-            else if (encMode == EncodingMode.Alphanumeric)
-                return 9;
-            else
-                return 8;
-        }
-        else if (version < 27)
-        {
-            if (encMode == EncodingMode.Numeric)
-                return 12;
-            else if (encMode == EncodingMode.Alphanumeric)
-                return 11;
-            else if (encMode == EncodingMode.Byte)
-                return 16;
-            else
-                return 10;
-        }
-        else
-        {
-            if (encMode == EncodingMode.Numeric)
-                return 14;
-            else if (encMode == EncodingMode.Alphanumeric)
-                return 13;
-            else if (encMode == EncodingMode.Byte)
-                return 16;
-            else
-                return 12;
-        }
+        return 9;
     }
     private static bool IsValidISO(string input)
     {
