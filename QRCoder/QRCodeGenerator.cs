@@ -290,8 +290,6 @@ public partial class QRCodeGenerator : IDisposable
             poly[i] = new PolynomItem(GaloisField.GetIntValFromAlphaExp(poly[i].Coefficient), poly[i].Exponent);
         }
     }
-    private static bool IsInRange(char c, char min, char max)
-        => (uint)(c - min) <= (uint)(max - min);
     private static Polynom CalculateMessagePolynom(BitArray bitArray, int offset, int bitCount)
     {
         // Calculate how many full 8-bit codewords are present
@@ -376,36 +374,6 @@ public partial class QRCodeGenerator : IDisposable
             bitList[index++] = bit;
         }
         return index;
-    }
-    private static int GetCountIndicatorLength(int version)
-    {
-        return 9;
-    }
-    private static bool IsValidISO(string input)
-    {
-        // ISO-8859-1 contains the same characters as UTF-16 for the range 0x00-0xFF.
-        //   0x00-0x7F: ASCII (0-127)
-        //   0x80-0x9F: C1 control characters (128-159)
-        //   0xA0-0xFF: Extended Latin (160-255)
-        foreach (char c in input)
-        {
-            if (c > 0xFF)
-                return false;
-        }
-        return true;
-    }
-    private static void CopyToBitArray(byte[] byteArray, BitArray bitArray, int offset)
-    {
-        for (var i = 0; i < byteArray.Length; i++)
-        {
-            var byteVal = byteArray[i];
-            for (var j = 0; j < 8; j++)
-            {
-                // Set each bit in the BitArray based on the corresponding bit in the byte array.
-                // It shifts bits within the byte to align with the MSB-to-LSB order.
-                bitArray[(int)((uint)i * 8) + j + offset] = (byteVal & (1 << (7 - j))) != 0;
-            }
-        }
     }
     private static Polynom XORPolynoms(Polynom messagePolynom, Polynom resPolynom)
     {

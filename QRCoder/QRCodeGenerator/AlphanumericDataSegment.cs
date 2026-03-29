@@ -38,7 +38,6 @@ public partial class QRCodeGenerator
 
             return bitIndex;
         }
-
         public BitArray ToBitArray()
         {
             var bitArray = new BitArray(GetBitLength());

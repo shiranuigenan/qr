@@ -23,7 +23,6 @@ public partial class QRCodeGenerator
             10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35
             // (we don't index > 90)
         ];
-        public static bool CanEncode(char c) => c <= 90 && _map[c] != 255;
         public static int GetBitLength(int textLength)
         {
             return (textLength / 2) * 11 + (textLength & 1) * 6;

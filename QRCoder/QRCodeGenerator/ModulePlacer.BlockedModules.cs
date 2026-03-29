@@ -37,18 +37,6 @@ public partial class QRCodeGenerator
             }
             public bool IsBlocked(int x, int y)
                 => _blockedModules[y][x];
-            public bool IsBlocked(Rectangle r1)
-            {
-                for (int y = r1.Y; y < r1.Y + r1.Height; y++)
-                {
-                    for (int x = r1.X; x < r1.X + r1.Width; x++)
-                    {
-                        if (_blockedModules[y][x])
-                            return true;
-                    }
-                }
-                return false;
-            }
             public void Dispose()
                 => Interlocked.CompareExchange(ref _staticBlockedModules, _blockedModules, null);
         }
