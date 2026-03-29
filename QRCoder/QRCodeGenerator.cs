@@ -11,7 +11,7 @@ public partial class QRCodeGenerator : IDisposable
         int version = 1;
 
         var segment = new AlphanumericDataSegment(plainText);
-        var bitArray = segment.ToBitArray(version);
+        var bitArray = segment.ToBitArray();
 
         var eccInfo = new ECCInfo(
                       version: 1,

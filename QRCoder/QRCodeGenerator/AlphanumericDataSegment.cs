@@ -9,26 +9,22 @@ public partial class QRCodeGenerator
         public string Text { get; }
         public AlphanumericDataSegment(string alphanumericText)
         {
-            Text = alphanumericText;
+            Text=alphanumericText;
         }
-        public int GetBitLength(int version)
-        {
-            return GetBitLength(Text.Length, version);
-        }
-        public static int GetBitLength(int textLength, int version)
+        public int GetBitLength()
         {
             int modeIndicatorLength = 4;
             int countIndicatorLength = 9;
-            int dataLength = AlphanumericEncoder.GetBitLength(textLength);
+            int dataLength = AlphanumericEncoder.GetBitLength(Text.Length);
             int length = modeIndicatorLength + countIndicatorLength + dataLength;
 
             return length;
         }
-        public int WriteTo(BitArray bitArray, int startIndex, int version)
+        public int WriteTo(BitArray bitArray, int startIndex)
         {
-            return WriteTo(Text, 0, Text.Length, bitArray, startIndex, version);
+            return WriteTo(Text, 0, Text.Length, bitArray, startIndex);
         }
-        public static int WriteTo(string text, int offset, int length, BitArray bitArray, int bitIndex, int version)
+        public static int WriteTo(string text, int offset, int length, BitArray bitArray, int bitIndex)
         {
             // write mode indicator
             bitIndex = DecToBin(2, 4, bitArray, bitIndex);
@@ -43,10 +39,10 @@ public partial class QRCodeGenerator
             return bitIndex;
         }
 
-        public BitArray ToBitArray(int version)
+        public BitArray ToBitArray()
         {
-            var bitArray = new BitArray(GetBitLength(version));
-            WriteTo(bitArray, 0, version);
+            var bitArray = new BitArray(GetBitLength());
+            WriteTo(bitArray, 0);
             return bitArray;
         }
     }
