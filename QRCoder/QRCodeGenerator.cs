@@ -10,7 +10,7 @@ public partial class QRCodeGenerator : IDisposable
     {
         int version = 1;
 
-        var segment = new OptimizedLatin1DataSegment(plainText);
+        var segment = new AlphanumericDataSegment(plainText);
         var bitArray = segment.ToBitArray(version);
 
         var eccInfo = new ECCInfo(
@@ -378,7 +378,7 @@ public partial class QRCodeGenerator : IDisposable
         }
         return index;
     }
-    private static int GetCountIndicatorLength(int version, EncodingMode encMode)
+    private static int GetCountIndicatorLength(int version)
     {
         return 9;
     }
