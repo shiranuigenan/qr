@@ -294,39 +294,6 @@ public partial class QRCodeGenerator
                 blockedModules.Add(new Rectangle(locationX, locationY, 7, 7));
             }
         }
-        public static void PlaceAlignmentPatterns(QRCodeData qrCode, List<Point> alignmentPatternLocations, BlockedModules blockedModules)
-        {
-            // Iterate through each specified location for alignment patterns.
-            foreach (var loc in alignmentPatternLocations)
-            {
-                // Define a 5x5 rectangle for the alignment pattern based on the center point provided.
-                var alignmentPatternRect = new Rectangle(loc.X, loc.Y, 5, 5);
-
-                // Check if the proposed alignment pattern rectangle intersects with any already blocked rectangles.
-                if (blockedModules.IsBlocked(alignmentPatternRect))
-                {
-                    // Skip the current location if it is blocked to prevent overwriting crucial information.
-                    continue;
-                }
-
-                // Place the alignment pattern by setting modules within the 5x5 area.
-                // The pattern consists of a 3x3 center block with a single module border.
-                for (var x = 0; x < 5; x++)
-                {
-                    for (var y = 0; y < 5; y++)
-                    {
-                        // Create the pattern: a 3x3 block surrounded by a border, with the very center module set.
-                        if (y == 0 || y == 4 || x == 0 || x == 4 || (x == 2 && y == 2))
-                        {
-                            qrCode.ModuleMatrix[loc.Y + y + 4][loc.X + x + 4] = true;
-                        }
-                    }
-                }
-
-                // Add the alignment pattern's area to the list of blocked modules to prevent future overwrites.
-                blockedModules.Add(new Rectangle(loc.X, loc.Y, 5, 5));
-            }
-        }
         public static void PlaceTimingPatterns(QRCodeData qrCode, BlockedModules blockedModules)
         {
             // Get the size of the QR code matrix excluding padding.
