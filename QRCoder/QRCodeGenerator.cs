@@ -116,7 +116,6 @@ public partial class QRCodeGenerator : IDisposable
                     if (codeBlock.ECCWords.Count > i)
                         length += 8;
             }
-            length += CapacityTables.GetRemainderBits(version);
             return length;
         }
 
