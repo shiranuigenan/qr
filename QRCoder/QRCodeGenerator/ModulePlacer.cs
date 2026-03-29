@@ -6,22 +6,6 @@ public partial class QRCodeGenerator
 {
     private static partial class ModulePlacer
     {
-        public static void PlaceVersion(QRCodeData qrCode, BitArray versionStr, bool offset)
-        {
-            var offsetValue = offset ? 4 : 0;
-            var size = qrCode.ModuleMatrix.Count - offsetValue - offsetValue;
-
-            // Loop through each module position intended for version information, placed adjacent to the separators.
-            for (var x = 0; x < 6; x++)
-            {
-                for (var y = 0; y < 3; y++)
-                {
-                    // Apply the version bits to the corresponding modules on the matrix, mapping the bits from the versionStr array.
-                    qrCode.ModuleMatrix[y + size - 11 + offsetValue][x + offsetValue] = versionStr[17 - (x * 3 + y)];
-                    qrCode.ModuleMatrix[x + offsetValue][y + size - 11 + offsetValue] = versionStr[17 - (x * 3 + y)];
-                }
-            }
-        }
         public static void PlaceFormat(QRCodeData qrCode, BitArray formatStr, bool offset)
         {
             var isMicro = qrCode.Version < 0; // Negative versions indicate Micro QR codes.
@@ -106,7 +90,6 @@ public partial class QRCodeGenerator
 
             // Temporary QRCodeData object to test different mask patterns without altering the original.
             var qrTemp = new QRCodeData(version, false);
-            BitArray? versionString = null;
             var formatStr = new BitArray(15);
             for (var maskPattern = 0; maskPattern < 8; maskPattern++)
             {
@@ -127,12 +110,6 @@ public partial class QRCodeGenerator
                 // Place format information using the current mask pattern.
                 GetFormatString(formatStr, version, maskPattern);
                 ModulePlacer.PlaceFormat(qrTemp, formatStr, false);
-
-                // Place version information if applicable.
-                if (versionString != null) // aka if (version >= 7)
-                {
-                    ModulePlacer.PlaceVersion(qrTemp, versionString, false);
-                }
 
                 // Apply the mask pattern and calculate the score.
                 for (var x = 0; x < size; x++)
